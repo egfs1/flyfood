@@ -1,37 +1,35 @@
-R = (3,0)
-A = (1,1)
-B = (3,2)
-C = (2,4)
-D = (0, 4)
-P = [B, D, A, C]
+def distancia(p1: tuple, p2: tuple) -> int:
+    return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
 
-def distancia(ponto1: tuple, ponto2: tuple):
-    return abs(ponto1[0] - ponto2[0]) + abs(ponto1[1] - ponto2[1])
-
-def custo_do_percurso(ponto_atual, proximo_ponto, pontos_faltantes):
-    if len(pontos_faltantes) == 0:
-        return distancia(ponto_atual, proximo_ponto) + distancia(proximo_ponto, R)
+def custo_do_percurso(ponto_inicial, index_atual, percurso, pontos_de_entrega):
+    ponto_atual = ponto_inicial if index_atual == -1 else pontos_de_entrega[percurso[index_atual]]
     
-    novo_proximo_ponto = pontos_faltantes[0]
-    novo_pontos_faltantes = pontos_faltantes[1:]
-    return distancia(ponto_atual, proximo_ponto) + custo_do_percurso(proximo_ponto, novo_proximo_ponto, novo_pontos_faltantes)
-
+    if index_atual == len(percurso) - 1:
+        return distancia(ponto_atual, ponto_inicial)
+    
+    return distancia(ponto_atual, pontos_de_entrega[percurso[index_atual + 1]]) + custo_do_percurso(ponto_inicial, index_atual + 1, percurso, pontos_de_entrega)
+    
 def permutacao_dos_pontos(pontos):
-    if len(pontos) == 1:
-        return [pontos]
+    def backtrack(inicio, fim):
+        if inicio == fim:
+            permutacoes.append(pontos[:])
+        else:
+            for i in range(inicio, fim):
+                pontos[inicio], pontos[i] = pontos[i], pontos[inicio]
+                backtrack(inicio + 1, fim)
+                pontos[inicio], pontos[i] = pontos[i], pontos[inicio]
+
     permutacoes = []
-    for i in range(len(pontos)):
-        ponto = pontos[i]
-        pontos_restantes = pontos[:i] + pontos[i+1:]
-        for permutacao in permutacao_dos_pontos(pontos_restantes):
-            permutacoes.append([ponto] + permutacao)
+    backtrack(0, len(pontos))
     return permutacoes
 
-def melhor_percurso(ponto_inicial, lista_de_pontos):
+
+def melhor_percurso(ponto_inicial, pontos_de_entrega):
     custo_menor_percurso = None
     menor_percurso = None
-    for percurso in permutacao_dos_pontos(lista_de_pontos):
-        custo = custo_do_percurso(ponto_inicial, percurso[0], percurso[1:])
+    todos_os_percursos = permutacao_dos_pontos(list(pontos_de_entrega.keys()))
+    for percurso in todos_os_percursos:
+        custo = custo_do_percurso(ponto_inicial, -1, percurso, pontos_de_entrega)
         if custo_menor_percurso is None or custo < custo_menor_percurso:
             custo_menor_percurso = custo
             menor_percurso = percurso
@@ -39,7 +37,20 @@ def melhor_percurso(ponto_inicial, lista_de_pontos):
     return (custo_menor_percurso, menor_percurso)
 
 
-print(melhor_percurso(R, P)) 
+if __name__ == '__main__':
+    ponto_de_partida = None
+    pontos_de_entrega = {}
+    linhas, colunas = map(int, input().split())
 
+    for i in range(linhas):
+        valores = input().split()
+        for j in range(colunas):
+            valor_atual = valores[j]
+            if valor_atual == 'R':
+                ponto_de_partida = (i, j)
+            elif valor_atual != '0':
+                pontos_de_entrega[valor_atual] = (i, j)
 
-
+    custo, percurso = melhor_percurso(ponto_de_partida, pontos_de_entrega)
+    print(f"Minimo custo total entre os percursos: {custo}")
+    print(f"Menor percurso: " + ' '.join(percurso))

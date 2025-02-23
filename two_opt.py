@@ -1,6 +1,3 @@
-import numpy as np
-import matplotlib.pyplot as plt
-
 def distancia(p1: tuple, p2: tuple) -> int:
     return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
 
@@ -95,7 +92,3 @@ if __name__ == '__main__':
     custo, percurso = melhor_percurso(ponto_de_partida, pontos_de_entrega)
     print(f"Minimo custo total entre os percursos: {custo}")
     print(f"Menor percurso: " + ' '.join(percurso))
-
-    
-    plt.plot(percurso)
-    plt.show()

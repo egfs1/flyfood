@@ -1,15 +1,25 @@
+
 from re import M
 from types import MethodType
 import random
 import matplotlib.pyplot as plt
 import numpy as np
 
+matriz = []
 
-matriz = [["L" , 0 , 0 , 0 , 0],
-          [0, "H", "G" , "F", "E"],
-          [0, 0, 0 , 0 , "D"],
-          [0 , 0 , 0 , 0 , "C"],
-          [0 , "A" , 0 , 0 , "B"]]
+berlim_52 = [
+    (565.0, 575.0), (25.0, 185.0), (345.0, 750.0), (945.0, 685.0), (845.0, 655.0),
+    (880.0, 660.0), (25.0, 230.0), (525.0, 1000.0), (580.0, 1175.0), (650.0, 1130.0),
+    (1605.0, 620.0), (1220.0, 580.0), (1465.0, 200.0), (1530.0, 5.0), (845.0, 680.0),
+    (725.0, 370.0), (145.0, 665.0), (415.0, 635.0), (510.0, 875.0), (560.0, 365.0),
+    (300.0, 465.0), (520.0, 585.0), (480.0, 415.0), (835.0, 625.0), (975.0, 580.0),
+    (1215.0, 245.0), (1320.0, 315.0), (1250.0, 400.0), (660.0, 180.0), (410.0, 250.0),
+    (420.0, 555.0), (575.0, 665.0), (1150.0, 1160.0), (700.0, 580.0), (685.0, 595.0),
+    (685.0, 610.0), (770.0, 610.0), (795.0, 645.0), (720.0, 635.0), (760.0, 650.0),
+    (475.0, 960.0), (95.0, 260.0), (875.0, 920.0), (700.0, 500.0), (555.0, 815.0),
+    (830.0, 485.0), (1170.0, 65.0), (830.0, 610.0), (605.0, 625.0), (595.0, 360.0),
+    (1340.0, 725.0), (1740.0, 245.0)
+]
 
 
 
@@ -43,27 +53,20 @@ def MakePopulation(population_size,random_permute_method,dot_list):
   return population
 
 
-def Fitness(array_base,array_dots):
-  linhas = len(array_base)
-  colunas = len(array_base[0])
-  solucao = []
-  A=(linhas - 1, 0)#Começo
-  B=(0, colunas - 1)#Fim
-  Aptidao = []
-  menor = 9999999999999999999999
-  for caminho in array_dots:
-    x = abs(caminho[0][0] - A[0]) + abs(caminho[0][1] - A[1])
-    y = 0
-    for j in range(len(caminho)-1):
-       y += abs(caminho[j+1][0] - caminho[j][0]) + abs(caminho[j+1][1] - caminho[j][1])
+def Fitness(array_base, array_dots):
+    Aptidao = []
+    
+    for caminho in array_dots:
+        y = 0
+        for j in range(len(caminho) - 1):
+            y += abs(caminho[j + 1][0] - caminho[j][0]) + abs(caminho[j + 1][1] - caminho[j][1])
+        
+        Aptidao.append((caminho, y))
+    
+    Aptidao.sort(key=lambda x: x[1])
+    
+    return Aptidao
 
-    z = y + x + abs(caminho[-1][0] - B[0]) + abs(caminho[-1][1] - B[1])
-
-    Aptidao.append((caminho,z))
-
-  Aptidao.sort(key=lambda x: x[1])
-
-  return Aptidao
 
 
 def CrossOver(parent1, parent2, cross_over_rate):
@@ -143,18 +146,6 @@ def Elitismo(filhos_aptos,pais_aptos):
   return final_population
 
 
-#----------Make generations---------
-
-#Fazendo uma geração
-
-pais = MakePopulation(Tamanho_Populacao,makePermute,dotList)
-pais_mais_aptos = Fitness(matriz_base,pais)
-
-filhos = Filhos(pais,cross_over_rate,cross_over_method,mutation_rate,mutation_method)
-filhos_mais_aptos = Fitness(matriz_base,filhos)
-
-
-
 def Main(generations,population_size,cross_over_rate,mutation_rate,cross_over_method,mutation_method,fitness_method,selection_method,make_population_method,make_permutations_method,make_childs_method,dot_list,matriz_base):
   population_initial = make_population_method(population_size,make_permutations_method,dot_list)
   for i in range(generations):
@@ -176,16 +167,13 @@ mutation_method = MutacaoSwap
 selection_method = Elitismo
 #variaveis
 matriz_base = matriz
-dotList = PontosCouter(matriz)
-population_size = 50 
-cross_over_rate = 90
-mutation_rate = 10
-generations = 400
+dotList = berlim_52
+population_size = 100
+cross_over_rate = 96
+mutation_rate = 1
+generations = 1000
 
-
-Main(generations,population_size,cross_over_rate,mutation_rate,cross_over_method,mutation_method,fitness_method,selection_method,makePopulation,makePermute,make_childs_method,dotList,matriz_base)
-
-
+arr = Main(generations,population_size,cross_over_rate,mutation_rate,cross_over_method,mutation_method,fitness_method,selection_method,makePopulation,makePermute,make_childs_method,dotList,matriz_base)
 
 
 

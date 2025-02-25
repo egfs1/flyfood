@@ -1,0 +1,6 @@
+{
+  "testFile": "./testFiles/a280.tsp",
+  "testQuantity": 10,
+  "outputFolder": "./output",
+  "algorithm": "two_opt"
+}

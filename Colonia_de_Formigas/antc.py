@@ -1,11 +1,70 @@
 import math
 import random
-import time
+import matplotlib.pyplot as plt
+import numpy as np
+from read_tsp import load_tsp
 
+def plot_snapshot(generation, graph, num_ants, best_cost):
+    
+    fig, ax = plt.subplots(figsize=(8, 8))
+    
+    for i in range(graph.n):
+        for j in range(i + 1, graph.n):
+            intensity = graph.feromone[i][j]
+            if intensity > 0.01:
+                ax.plot([graph.cities[i][0], graph.cities[j][0]],
+                        [graph.cities[i][1], graph.cities[j][1]],
+                        'b-', linewidth=intensity * 3, alpha=0.6)
+    
+    for i, (x, y) in enumerate(graph.cities):
+        ax.scatter(x, y, c='red', s=20)
+        ax.text(x, y, str(i), fontsize=10, ha='right')
+    
+    ax.set_title(f"Geração {generation}: Intensidade do Feromônio")
+
+    ax.text(0.5, 1.06,
+            f"Formigas: {num_ants} | Melhor Custo: {best_cost:.2f}",
+            transform=ax.transAxes,
+            ha='center', va='bottom',
+            fontsize=11)
+
+    plt.savefig(f"snapshot_generation_{generation}.png")
+    plt.close(fig)
+
+def plot_best_route(graph, best_cost, best_route, generation):
+    
+    fig, ax = plt.subplots(figsize=(8, 8))
+
+    for i in range(len(best_route) - 1):
+        city_a, city_b = best_route[i], best_route[i + 1]
+        ax.plot([graph.cities[city_a][0], graph.cities[city_b][0]],
+                [graph.cities[city_a][1], graph.cities[city_b][1]],
+                'r-', linewidth=2.5, alpha=0.9)
+
+    city_a, city_b = best_route[-1], best_route[0]
+    ax.plot([graph.cities[city_a][0], graph.cities[city_b][0]],
+            [graph.cities[city_a][1], graph.cities[city_b][1]],
+            'r-', linewidth=2.5, alpha=0.9)
+
+    for i, (x, y) in enumerate(graph.cities):
+        ax.scatter(x, y, c='red', s=30)
+        ax.text(x, y, str(i), fontsize=10, ha='right')
+
+    ax.set_title(f"Melhor Rota Encontrada - Geração {generation}")
+
+    ax.text(0.5, 1.06,
+            f"Melhor Custo: {best_cost:.2f}",
+            transform=ax.transAxes,
+            ha='center', va='bottom',
+            fontsize=11)
+
+    plt.savefig(f"best_route_generation_{generation}.png")
+    plt.close(fig)
 
 class Graph:
-    def __init__(self, distance_matrix):
+    def __init__(self, distance_matrix, cities):
         self.distance_matrix = distance_matrix
+        self.cities = cities
         self.n = len(distance_matrix)
         self.feromone = [[1.0 / (self.n * self.n) for _ in range(self.n)] for _ in range(self.n)]
 
@@ -26,7 +85,10 @@ class Ant:
 
         for city in self.unvisited_cities:
             feromone = self.graph.feromone[self.current_city][city] ** self.alpha
-            distance = (1.0 / self.graph.distance_matrix[self.current_city][city]) ** self.beta
+            dist = self.graph.distance_matrix[self.current_city][city]
+            if dist <= 1e-9: 
+                dist = 1e-6   
+            distance = (1.0 / dist) ** self.beta
             probability = feromone * distance
             probabilities.append((city, probability))
             total += probability
@@ -79,7 +141,12 @@ class AntC:
         best_cost = float('inf')
         best_route = []
 
-        for gen in range(self.gen):
+        snapshot_gens = {1, self.gen}
+        if self.gen >= 30:
+            snapshot_gens.add(30)
+        snapshot_gens.add(self.gen // 2)
+
+        for gen in range(1, self.gen + 1):
             ants = [Ant(self.graph) for _ in range(self.num_ants)]
             for ant in ants:
                 ant.trace_route()
@@ -88,52 +155,26 @@ class AntC:
                     best_route = ant.route
             self._evaporate()
             self._deposit_feromone(ants)
-            print(f"Geração {gen + 1}/{self.gen}: Melhor custo = {best_cost}")
+            print(f"Geração {gen}/{self.gen}: Melhor custo = {best_cost}")
+            if gen in snapshot_gens:
+                print(f"Salvando snapshots da geração {gen}.")
+                plot_snapshot(gen, self.graph, self.num_ants, best_cost)
+                plot_best_route(self.graph, best_cost, best_route, gen)
         
         return best_route, best_cost
-    
-def load_tsp(file):
-    cities = []
-    with open(file, 'r') as f:
-        for row in f:
-            if row.strip() == "NODE_COORD_SECTION":
-                break
-        
-        for row in f:
-            if row.strip() == "EOF":
-                break
-            parts = row.strip().split()
-            if parts[0].isdigit():
-
-                x = float(parts[1])
-                y = float(parts[2])
-                cities.append((x, y))
-
-    return cities
-
-def euclidean_dist(cities):
-    n = len(cities)
-    matrix = [[0.0] * n for _ in range(n)]
-    for i in range(n):
-        for j in range(n):
-            if i != j:
-                dx = cities[i][0] - cities[j][0]
-                dy = cities[i][1] - cities[j][1]
-                matrix[i][j] = math.sqrt(dx*dx + dy*dy)
-    return matrix
 
 def main():
 
     random.seed(42)
     
-    cities = load_tsp("flyfood/berlin52.tsp")
-    distance_matrix = euclidean_dist(cities)
-    graph = Graph(distance_matrix)
-    antc = AntC(graph, num_ants=52, gen=10000, rho=0.5, q=100)
+    cities, distance_matrix = load_tsp("flyfood/brazil58.tsp")
+
+    graph = Graph(distance_matrix, cities)
+    antc = AntC(graph, num_ants=58, gen=1000, rho=0.5, q=100)
     best_route, best_cost = antc.solve()
 
     print(f"Melhor rota: {best_route}")
     print(f"Melhor custo: {best_cost}")
-
+    
 if __name__ == "__main__":
     main()

@@ -5,10 +5,8 @@ import random
 import matplotlib.pyplot as plt
 import numpy as np
 
-matriz = []
-
-berlim_52 = [
-    (565.0, 575.0), (25.0, 185.0), (345.0, 750.0), (945.0, 685.0), (845.0, 655.0),
+matriz = [
+   (25.0, 185.0), (345.0, 750.0), (945.0, 685.0), (845.0, 655.0),
     (880.0, 660.0), (25.0, 230.0), (525.0, 1000.0), (580.0, 1175.0), (650.0, 1130.0),
     (1605.0, 620.0), (1220.0, 580.0), (1465.0, 200.0), (1530.0, 5.0), (845.0, 680.0),
     (725.0, 370.0), (145.0, 665.0), (415.0, 635.0), (510.0, 875.0), (560.0, 365.0),
@@ -22,27 +20,12 @@ berlim_52 = [
 ]
 
 
-
-def PontosCouter(array):
-  ArrayValues = []
-  Dots = []
-  for i in range(len(array)):
-    for j in range(len(array[i])):
-            if array[i][j] != 0:
-                name = array[i][j]
-                Dots.append(name)
-                coordenadas = (i, j)
-                ArrayValues.append(coordenadas)
-  return ArrayValues
-
 def MakeRandomPermute(arr):
     # Cria uma cópia do array para não modificar o original
     new_permute = arr.copy()
     # Embaralha a cópia
     random.shuffle(new_permute)
     return new_permute
-
-
 
 def MakePopulation(population_size,random_permute_method,dot_list):
   population = []
@@ -52,52 +35,44 @@ def MakePopulation(population_size,random_permute_method,dot_list):
 
   return population
 
-
-def Fitness(array_base, array_dots):
+def Fitness(array_dots,init_dot):
     Aptidao = []
-    
-    for caminho in array_dots:
-        y = 0
-        for j in range(len(caminho) - 1):
-            y += abs(caminho[j + 1][0] - caminho[j][0]) + abs(caminho[j + 1][1] - caminho[j][1])
-        
-        Aptidao.append((caminho, y))
-    
+    for array_dot in array_dots:
+      distance = abs(init_dot[0]-array_dot[0][0]) + abs(init_dot[1]-array_dot[0][1])
+
+      for i in range(len(array_dot)-1):
+          distance += abs(array_dot[i][0]-array_dot[i+1][0]) + abs(array_dot[i][1]-array_dot[i+1][1])
+
+      distance += abs(init_dot[0]-array_dot[-1][0]) + abs(init_dot[1]-array_dot[-1][1]) # Use -1 to access the last element of array_dot
+
+      Aptidao.append((array_dot,distance))
+
     Aptidao.sort(key=lambda x: x[1])
-    
     return Aptidao
 
+def CrossOver(parent1, parent2,cross_over_rate):
+   if random.random() * 100 < cross_over_rate:
+      size = len(parent1)
+      child1, child2 = [-1] * size, [-1] * size
 
+      ponto1, ponto2 = sorted(random.sample(range(size), 2))
+      child1[ponto1:ponto2] = parent1[ponto1:ponto2]
+      child2[ponto1:ponto2] = parent2[ponto1:ponto2]
 
-def CrossOver(parent1, parent2, cross_over_rate):
-    if random.random() * 100 < cross_over_rate:
-        size = len(parent1)
-        ponto1, ponto2 = sorted(random.sample(range(size), 2))
+      def preencher(child, parent):
+          usados = set(child[ponto1:ponto2])
+          for i in range(size):
+              if child[i] == -1:
+                  for gene in parent:
+                      if gene not in usados:
+                          child[i] = gene
+                          usados.add(gene)
+                          break
+          return child
 
-        filho1 = [-1] * size
-        filho2 = [-1] * size
+      return preencher(child1, parent2), preencher(child2, parent1)
 
-        filho1[ponto1:ponto2] = parent1[ponto1:ponto2]
-        filho2[ponto1:ponto2] = parent2[ponto1:ponto2]
-
-        def preencher_filho(filho, parent):
-            usados = set(filho[ponto1:ponto2])  # Coleta os valores já presentes
-            for i in range(size):
-                if i < ponto1 or i >= ponto2:
-                    for gene in parent:
-                        if gene not in usados:
-                            filho[i] = gene
-                            usados.add(gene)
-                            break
-            return filho
-
-        filho1 = preencher_filho(filho1, parent2)
-        filho2 = preencher_filho(filho2, parent1)
-
-        return filho1, filho2
-
-    return parent1, parent2
-
+   return parent1, parent2
 
 
 def MutacaoSwap(rota, taxa_mutacao):
@@ -112,8 +87,6 @@ def MutacaoSwap(rota, taxa_mutacao):
 
     return rota
 
-
-
 def Torneio(fitness_list):
   firstidx = random.randint(0,len(fitness_list)-1)
   secondidx = random.randint(0,len(fitness_list)-1)
@@ -121,59 +94,73 @@ def Torneio(fitness_list):
     return fitness_list[firstidx][0]
   else:
     return fitness_list[secondidx][0]
+  
+def Roleta(fitness_list):
+    # Calcula o total das aptidões (inverso da distância para minimizar)
+    total_fitness = sum(1 / individuo[1] for individuo in fitness_list)
 
-def Filhos(parent_list_initial,cross_over_rate,cross_over_method,taxa_mutacao,mutation_method):
+    # Gera um número aleatório entre 0 e o total de fitness
+    pick = random.uniform(0, total_fitness)
+
+    current = 0
+    for individuo in fitness_list:
+        current += 1 / individuo[1]  # Quanto menor a distância, maior a chance de ser escolhido
+        if current >= pick:
+            return individuo[0]  # Retorna o caminho do indivíduo selecionado
+        
+
+
+def Filhos(parent_list_initial,cross_over_rate,cross_over_method,mutation_rate,mutation_method,initial_point):
   new_population = []
+  parent_fitness = Fitness(parent_list_initial,initial_point)
   while len(new_population) < len(parent_list_initial):
-    parent1 = Torneio(Fitness(matriz,parent_list_initial))
-    parent2 = Torneio(Fitness(matriz,parent_list_initial))
-    child1, child2 = cross_over_method(parent1, parent2,cross_over_rate)
-    child1 = mutation_method(child1,taxa_mutacao)
-    child2 = mutation_method(child2,taxa_mutacao)
+    parent1, parent2 = None, None
+    while parent1 == parent2:
+      parent1 = Roleta(parent_fitness)
+      parent2 = Roleta(parent_fitness)
+    child1, child2 = cross_over_method(parent1, parent2, cross_over_rate)
+    child1 = mutation_method(child1, mutation_rate)
+    child2 = mutation_method(child2, mutation_rate)
     new_population.append(child1)
-    new_population.append(child2)
+    if len(new_population) < len(parent_list_initial):
+            new_population.append(child2)
   return new_population
 
-
-def Elitismo(filhos_aptos,pais_aptos):
+def Elitismo(children_apts,parent_apts):
   final_population = []
-  taixa = len(pais_aptos)*(10/100)
-  taixa2= len(pais_aptos)*(90/100)
+  taixa = len(parent_apts)*(30/100)
+  taixa2= len(parent_apts)*(70/100)
   for i in range(int(taixa)):
-    final_population.append(pais_aptos[i][0])
+    final_population.append(parent_apts[i][0])
   for i in range(int(taixa2)):
-    final_population.append(filhos_aptos[i][0])
+    final_population.append(children_apts[i][0])
   return final_population
 
 
-def Main(generations,population_size,cross_over_rate,mutation_rate,cross_over_method,mutation_method,fitness_method,selection_method,make_population_method,make_permutations_method,make_childs_method,dot_list,matriz_base):
-  population_initial = make_population_method(population_size,make_permutations_method,dot_list)
+def Main(generations,population_size,cross_over_rate,cross_over_method,mutation_rate,mutation_method,make_random_permute_method,selection_method,fitness_method,initial_point):
+  population_initial = MakePopulation(population_size,make_random_permute_method,matriz)
+  parents_apts = Fitness(population_initial,initial_point)
   for i in range(generations):
-    pais_aptos = fitness_method(matriz_base,population_initial)
-    filhos = make_childs_method(population_initial,cross_over_rate,cross_over_method,mutation_rate,mutation_method)
-    flhos_aptos = fitness_method(matriz_base,filhos)
-    population_initial = selection_method(flhos_aptos,pais_aptos)
-  return fitness_method(matriz_base,population_initial)
+    children = Filhos(population_initial,cross_over_rate,cross_over_method,mutation_rate,mutation_method,initial_point)
+    children_apts = Fitness(children,initial_point)
+    population_initial = selection_method(children_apts,parents_apts)
+    parents_apts = Fitness(population_initial,initial_point)
+  return fitness_method(population_initial,initial_point)
 
 
-
-#instancia dos metodos por causa do desaclopamento
-makePermute = MakeRandomPermute
-makePopulation = MakePopulation
-cross_over_method = CrossOver
-make_childs_method = Filhos
+#instancia dos metodos
 fitness_method = Fitness
+makerandompermute = MakeRandomPermute
+cross_over_method = CrossOver
 mutation_method = MutacaoSwap
 selection_method = Elitismo
+make_random_permute_method = MakeRandomPermute
 #variaveis
-matriz_base = matriz
-dotList = berlim_52
-population_size = 100
-cross_over_rate = 96
-mutation_rate = 1
-generations = 1000
+generations = 200
+population_size = 400
+cross_over_rate = 95
+mutation_rate = 2
+initial_point = (565.0, 575.0)
 
-arr = Main(generations,population_size,cross_over_rate,mutation_rate,cross_over_method,mutation_method,fitness_method,selection_method,makePopulation,makePermute,make_childs_method,dotList,matriz_base)
-
-
-
+arr = Main(generations,population_size,cross_over_rate,cross_over_method,mutation_rate,mutation_method,make_random_permute_method,selection_method,fitness_method,initial_point)
+print(arr[0])

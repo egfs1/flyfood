@@ -13,14 +13,11 @@
 
 **Autores:**  
 Eduardo Souza - eduardo.gomesferreira@ufrpe.br
-
 Rodrigo Santana - rodrigo.sousasantana@ufrpe.br
-
 Victor Souza - victor.souzaa@ufrpe.br
-
 Roberto Leite - roberto.opleite@ufrpe.br
-
 Matheus Sales - matheus.costasales@ufrpe.br
+
 
 **Orientador:**  
 Rodrigo Gabriel Ferreira Soares

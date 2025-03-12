@@ -4,6 +4,52 @@ import numpy as np
 from funcoes_auxiliares.read_tsp import load_tsp
 from funcoes_auxiliares.plotting import plot_best_route, plot_snapshot
 
+def sample_parameters(graph, num_trials=30):
+    """
+    Busca aleatória para otimizar os hiperparâmetros do Algoritmo de Colônia de Formigas.
+
+    :param graph: Objeto do grafo do problema.
+    :param num_trials: Número de tentativas da busca aleatória.
+    :return: Melhor conjunto de hiperparâmetros e o menor custo encontrado.
+    """
+    best_params = None
+    best_cost = float('inf')
+
+    for i in range(num_trials):
+
+        num_ants = int(random.lognormvariate(mu=3, sigma=0.5))
+        num_ants = max(5, min(num_ants, 50))  
+
+        gen = int(random.lognormvariate(mu=4, sigma=0.5))
+        gen = max(50, min(gen, 500))  
+
+        rho = random.betavariate(alpha=2, beta=5) * 0.8 + 0.1  
+
+        alpha = random.expovariate(1.0)  
+        alpha = max(0.5, min(alpha, 3.0))  
+
+        beta = random.normalvariate(mu=3, sigma=1.0)  
+        beta = max(1.0, min(beta, 5.0)) 
+
+        aco = AntC(graph, num_ants=num_ants, gen=gen, rho=rho, alpha=alpha, beta=beta)
+        _, cost = aco.solve()
+
+        if cost < best_cost:
+            best_cost = cost
+            best_params = {
+                "num_ants": num_ants,
+                "gen": gen,
+                "rho": rho,
+                "alpha": alpha,
+                "beta": beta
+            }
+
+        print(f"Tentativa {i+1}/{num_trials}: Custo = {cost} | Parâmetros: {best_params}")
+
+    print("\nMelhores hiperparâmetros encontrados:", best_params)
+    print("Melhor custo obtido:", best_cost)
+    
+    return best_params, best_cost
 
 class Graph:
     def __init__(self, distance_matrix, cities):
@@ -60,9 +106,11 @@ class Ant:
 
 
 class AntC:
-    def __init__(self, graph, num_ants=10, gen=100, rho=0.5, q=100):
+    def __init__(self, graph, num_ants=10, gen=100, rho=0.5, q=100, alpha=1.0, beta=2.0):
         self.graph = graph
         self.num_ants = num_ants
+        self.alpha = alpha
+        self.beta = beta
         self.gen = gen
         self.rho = rho
         self.q = q
@@ -111,14 +159,20 @@ def main():
 
     random.seed(42)
     
-    cities, distance_matrix = load_tsp("flyfood/brazil58.tsp")
+    cities, distance_matrix = load_tsp("testFiles/berlin52.tsp")
 
     graph = Graph(distance_matrix, cities)
-    antc = AntC(graph, num_ants=58, gen=1000, rho=0.5, q=100)
+    antc = AntC(graph, num_ants=10, gen=97, rho=0.30, q=100, alpha=0.72, beta=2.86)
     best_route, best_cost = antc.solve()
 
     print(f"Melhor rota: {best_route}")
     print(f"Melhor custo: {best_cost}")
-    
+
+def random_search():
+
+    cities, distance_matrix = load_tsp("testFiles/brazil58.tsp")
+    graph = Graph(distance_matrix, cities)
+
+    best_params, best_cost = sample_parameters(graph=graph, num_trials=30)
 if __name__ == "__main__":
     main()

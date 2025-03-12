@@ -12,11 +12,11 @@
 # **F L Y F O O D**
 
 **Autores:**  
-Eduardo Souza - eduardo.gomesferreira@ufrpe.br
-Rodrigo Santana - rodrigo.sousasantana@ufrpe.br
-Victor Souza - victor.souzaa@ufrpe.br
-Roberto Leite - roberto.opleite@ufrpe.br
-Matheus Sales - matheus.costasales@ufrpe.br
+Eduardo Souza /- eduardo.gomesferreira@ufrpe.br
+Rodrigo Santana /- rodrigo.sousasantana@ufrpe.br
+Victor Souza /- victor.souzaa@ufrpe.br
+Roberto Leite /- roberto.opleite@ufrpe.br
+Matheus Sales /- matheus.costasales@ufrpe.br
 
 **Orientador:**  
 Rodrigo Gabriel Ferreira Soares
